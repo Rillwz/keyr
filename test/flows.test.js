@@ -7,7 +7,7 @@ import { dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import * as store from '../src/lib/store.js';
-import { init, setSecret, getSecret, listSecrets, deleteSecret, exportSecrets } from '../src/commands/shared.js';
+import { init, setSecret, getSecret, listSecrets, deleteSecret, exportSecrets, resetVault } from '../src/commands/shared.js';
 
 const PTR = 'flow-pass-1';
 let home;
@@ -109,6 +109,16 @@ test('run: exit code child diwariskan', () => {
     encoding: 'utf8',
   });
   assert.equal(r.status, 3);
+});
+
+test('flows: resetVault menghapus vault dan izinkan init baru', () => {
+  init(PTR);
+  setSecret('a', '1', PTR);
+  resetVault();
+  assert.ok(!store.exists());
+  assert.throws(() => listSecrets(PTR), /VAULT_NOT_FOUND/);
+  init(PTR);
+  assert.ok(store.exists());
 });
 
 test('run: passphrase env KEYR_PASSPHRASE dipakai', () => {

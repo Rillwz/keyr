@@ -4,7 +4,7 @@ import chalk from 'chalk';
 import gradient from 'gradient-string';
 import ora from 'ora';
 import * as store from './lib/store.js';
-import { init, setSecret, getSecret, listSecrets, deleteSecret, exportSecrets } from './commands/shared.js';
+import { init, setSecret, getSecret, listSecrets, deleteSecret, exportSecrets, resetVault } from './commands/shared.js';
 import { runWithSecrets } from './commands/run.js';
 import {
   promptPassphrase,
@@ -120,8 +120,22 @@ async function cmdExport(name, filePath) {
   }
 }
 
-async function cmdRun(commandParts) {
+async function cmdReset() {
   banner();
+  if (!store.exists()) {
+    console.log(chalk.yellow('No vault found - nothing to reset.'));
+    return;
+  }
+  console.log(chalk.yellow('! This permanently deletes ALL secrets. There is no recovery.'));
+  if (!(await promptConfirmDelete('ENTIRE vault'))) {
+    console.log(chalk.yellow('Cancelled.'));
+    return;
+  }
+  resetVault();
+  console.log(chalk.green('Vault deleted. Run `keyr init` to start fresh.'));
+}
+
+async function cmdRun(commandParts) {  banner();
   const passphrase = await promptPassphrase();
   const { code, count } = await runWithSecrets(commandParts, passphrase);
   console.log(chalk.dim(`Injected ${count} secret(s) into the child process environment.`));
@@ -168,6 +182,11 @@ program
   .command('run <command...>')
   .description('Run a command with vault secrets as environment variables')
   .action((commandParts) => guard(() => cmdRun(commandParts)));
+
+program
+  .command('reset')
+  .description('Permanently delete the entire vault (no recovery)')
+  .action(() => guard(cmdReset));
 
 function guard(fn) {
   Promise.resolve()

@@ -35,3 +35,10 @@ export function load(passphrase) {
   const vault = JSON.parse(fs.readFileSync(file, 'utf8'));
   return decryptVault(vault, passphrase);
 }
+
+export function remove() {
+  const file = vaultPath();
+  if (!fs.existsSync(file)) return false;
+  fs.rmSync(file, { force: true });
+  return true;
+}

@@ -1,6 +1,10 @@
 ﻿import fs from 'node:fs';
 import * as store from '../lib/store.js';
 
+export function resetVault() {
+  return store.remove();
+}
+
 export function init(passphrase) {
   if (store.exists()) {
     throw new Error('VAULT_EXISTS: Vault already exists. Use your existing passphrase.');
