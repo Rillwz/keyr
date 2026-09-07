@@ -37,6 +37,7 @@ keyr list                     # list secret names
 keyr delete <name>            # delete (y/N confirmation)
 keyr delete <name> --yes      # delete without confirmation (scripting)
 keyr export <name> <path>     # export one secret to a plaintext JSON file
+keyr run <command...>         # run a command with all secrets as env vars
 ```
 
 First-run walkthrough:
@@ -55,6 +56,34 @@ Pipe into other tools:
 keyr get github-token | gh auth login --with-token
 OPENAI_API_KEY=$(keyr get openai-key)
 ```
+
+### Run any command with your secrets as env vars
+
+`keyr run` opens the vault once, injects every secret as an environment variable into a child process, and hands the terminal over. Secrets live in process memory only — they never touch the disk in plaintext and disappear when the process exits.
+
+```bash
+keyr run opencode                    # run opencode with all secrets in env
+keyr run node script.js              # works with anything
+```
+
+This pairs with config files that support `{env:VAR}` substitution (OpenCode, and many other tools). Point the config at the variable name instead of the real key:
+
+```jsonc
+// opencode.jsonc — a reference, not a secret; safe to keep in sync/backup
+{
+  "provider": {
+    "hive-ai": {
+      "options": { "apiKey": "{env:HIVE_API_KEY}" }
+    }
+  }
+}
+```
+
+Store the real value once in the vault (`keyr set HIVE_API_KEY`), then launch the tool through `keyr run`. The tool reads the config, substitutes `{env:HIVE_API_KEY}` from its environment, and the key stays out of every file.
+
+- Secrets are inherited only by the launched process (and its own children)
+- The child's exit code is propagated, so scripts can rely on it
+- Note: any process running as the same user can read a child's environment — this narrows exposure compared to plaintext config files, it is not protection against active malware on your machine
 
 ### Scripting without interactive prompts
 
@@ -114,6 +143,7 @@ src/
     store.js      # vault.json read/write, best-effort chmod
   commands/
     shared.js     # init/set/get/list/delete/export logic
+    run.js        # keyr run — spawn a command with secrets as env vars
     prompts.js    # masked prompts (@inquirer/prompts)
   ui/
     App.jsx       # root Ink component (interactive mode)

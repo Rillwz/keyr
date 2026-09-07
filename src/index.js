@@ -5,6 +5,7 @@ import gradient from 'gradient-string';
 import ora from 'ora';
 import * as store from './lib/store.js';
 import { init, setSecret, getSecret, listSecrets, deleteSecret, exportSecrets } from './commands/shared.js';
+import { runWithSecrets } from './commands/run.js';
 import {
   promptPassphrase,
   promptSecretValue,
@@ -119,6 +120,14 @@ async function cmdExport(name, filePath) {
   }
 }
 
+async function cmdRun(commandParts) {
+  banner();
+  const passphrase = await promptPassphrase();
+  const { code, count } = await runWithSecrets(commandParts, passphrase);
+  console.log(chalk.dim(`Injected ${count} secret(s) into the child process environment.`));
+  process.exit(code ?? 1);
+}
+
 program
   .name('keyr')
   .description('Local encrypted personal secret manager (AES-256-GCM)')
@@ -154,6 +163,11 @@ program
   .command('export <name> <path>')
   .description('Export a secret to a plaintext JSON file')
   .action((name, filePath) => guard(() => cmdExport(name, filePath)));
+
+program
+  .command('run <command...>')
+  .description('Run a command with vault secrets as environment variables')
+  .action((commandParts) => guard(() => cmdRun(commandParts)));
 
 function guard(fn) {
   Promise.resolve()

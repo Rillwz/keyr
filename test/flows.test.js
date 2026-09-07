@@ -1,6 +1,9 @@
 ﻿import { test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, existsSync } from 'node:fs';
+import { mkdtempSync, readFileSync, existsSync, writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import { dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import * as store from '../src/lib/store.js';
@@ -80,4 +83,43 @@ test('flows: nama secret dipertahankan persis (case-sensitive)', () => {
   setSecret('GitHub_Token', 'v', PTR);
   assert.equal(getSecret('GitHub_Token', PTR), 'v');
   assert.throws(() => getSecret('github_token', PTR), /SECRET_NOT_FOUND/);
+});
+
+const CLI = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'index.js');
+
+test('run: env tersampaikan ke child process', () => {
+  init(PTR);
+  setSecret('HIVE_API_KEY', 'hive-secret-123', PTR);
+  const child = join(home, 'child.js');
+  writeFileSync(child, 'console.log("VAL=" + process.env.HIVE_API_KEY)');
+  const r = spawnSync(process.execPath, [CLI, 'run', process.execPath, child], {
+    env: { ...process.env, KEYR_HOME: home, KEYR_PASSPHRASE: PTR },
+    encoding: 'utf8',
+  });
+  assert.equal(r.status, 0, r.stderr);
+  assert.ok(r.stdout.includes('VAL=hive-secret-123'), r.stdout);
+});
+
+test('run: exit code child diwariskan', () => {
+  init(PTR);
+  const child = join(home, 'fail.js');
+  writeFileSync(child, 'process.exit(3)');
+  const r = spawnSync(process.execPath, [CLI, 'run', process.execPath, child], {
+    env: { ...process.env, KEYR_HOME: home, KEYR_PASSPHRASE: PTR },
+    encoding: 'utf8',
+  });
+  assert.equal(r.status, 3);
+});
+
+test('run: passphrase env KEYR_PASSPHRASE dipakai', () => {
+  init(PTR);
+  setSecret('K', 'V', PTR);
+  const child = join(home, 'echo.js');
+  writeFileSync(child, 'console.log("K=" + process.env.K)');
+  const r = spawnSync(process.execPath, [CLI, 'run', process.execPath, child], {
+    env: { ...process.env, KEYR_HOME: home, KEYR_PASSPHRASE: PTR },
+    encoding: 'utf8',
+  });
+  assert.equal(r.status, 0, r.stderr);
+  assert.ok(r.stdout.includes('K=V'), r.stdout);
 });
