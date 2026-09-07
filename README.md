@@ -38,6 +38,7 @@ keyr delete <name>            # delete (y/N confirmation)
 keyr delete <name> --yes      # delete without confirmation (scripting)
 keyr export <name> <path>     # export one secret to a plaintext JSON file
 keyr run <command...>         # run a command with all secrets as env vars
+keyr reset                    # permanently delete the entire vault (no recovery)
 ```
 
 First-run walkthrough:
