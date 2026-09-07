@@ -1,0 +1,7 @@
+node_modules/
+src/ui/app.mjs
+*.log
+.env
+.env.*
+vault.json
+*.vault
