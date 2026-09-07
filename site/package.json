@@ -1,0 +1,13 @@
+{
+  "name": "keyr-site",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "build": "tailwindcss -i src/main.css -o dist/styles.css --minify && node build.mjs"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4",
+    "tailwindcss": "^4",
+    "flyonui": "^2.4.1"
+  }
+}

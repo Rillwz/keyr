@@ -10,6 +10,8 @@
   "scripts": {
     "test": "node --test \"test/*.test.js\"",
     "build": "node scripts/build-ui.js",
+    "build:site": "cd site && npm install --no-fund --no-audit && npm run build",
+    "deploy:site": "npx wrangler pages deploy site/dist --project-name=keyr",
     "prepare": "npm run build",
     "ui": "node src/index.js"
   },

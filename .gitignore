@@ -5,3 +5,6 @@ src/ui/app.mjs
 .env.*
 vault.json
 *.vault
+site/dist/
+site/dev.log
+.wrangler/

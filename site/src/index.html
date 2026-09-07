@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Keyr — local-first secret manager for API keys and secrets</title>
+  <meta name="description" content="A local-first secret manager for API keys and secrets, encrypted into a single vault using AES-256-GCM + scrypt. No server. No account. No telemetry." />
+  <link rel="icon" href="FAVICON_HREF" type="image/svg+xml" />
+  <meta property="og:title" content="Keyr — local-first secret manager" />
+  <meta property="og:description" content="Store API keys and secrets in one encrypted vault on your own machine. AES-256-GCM + scrypt. No server, no account." />
+  <meta property="og:type" content="website" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body class="bg-base-100 text-base-content antialiased">
+
+  <!-- Navbar -->
+  <header class="navbar sticky top-0 z-50 border-b border-base-300 bg-base-100/80 backdrop-blur">
+    <div class="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3">
+      <a href="#" class="flex items-center gap-2 font-semibold tracking-tight">
+        <span class="inline-flex size-7 items-center justify-center rounded-lg bg-linear-to-br from-keyr-purple to-keyr-blue text-white">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" class="size-4"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.8 12.2 21 2m-4 4 3 3m-6 0 2.5 2.5"/></svg>
+        </span>
+        Keyr
+      </a>
+      <nav class="hidden items-center gap-6 text-sm sm:flex">
+        <a href="#features" class="link link-hover">Features</a>
+        <a href="#how" class="link link-hover">How it works</a>
+        <a href="#compare" class="link link-hover">Compare</a>
+        <a href="#faq" class="link link-hover">FAQ</a>
+      </nav>
+      <a href="https://github.com/Rillwz/keyr" target="_blank" rel="noopener" class="btn btn-sm btn-outline gap-1.5">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-4"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.55v-2.15c-3.2.7-3.87-1.36-3.87-1.36-.52-1.33-1.28-1.69-1.28-1.69-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.19 1.76 1.19 1.03 1.75 2.69 1.25 3.34.95.1-.74.4-1.25.72-1.53-2.55-.29-5.23-1.28-5.23-5.68 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11.1 11.1 0 0 1 5.79 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.12 3.05.74.81 1.18 1.83 1.18 3.09 0 4.41-2.69 5.38-5.25 5.67.41.35.77 1.04.77 2.1v3.11c0 .31.2.67.8.55A11.51 11.51 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5Z"/></svg>
+        GitHub
+      </a>
+    </div>
+  </header>
+
+  <main>
+    <!-- Hero -->
+    <section class="relative overflow-hidden">
+      <div class="pointer-events-none absolute inset-0 bg-linear-to-b from-keyr-purple/8 to-transparent" aria-hidden="true"></div>
+      <div class="mx-auto max-w-6xl px-4 py-20 sm:py-28">
+        <div class="mx-auto max-w-3xl text-center">
+          <span class="badge badge-soft badge-primary mb-5">free &amp; open source</span>
+          <h1 class="text-4xl font-bold tracking-tight sm:text-5xl">
+            A local-first secret manager for <span class="bg-linear-to-r from-keyr-purple to-keyr-blue bg-clip-text text-transparent">API keys and secrets</span>
+          </h1>
+          <p class="mt-5 text-lg text-base-content/70">
+            One encrypted vault on your own machine — AES-256-GCM with scrypt key derivation.
+            No server. No account. No telemetry.
+          </p>
+          <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
+            <a href="https://github.com/Rillwz/keyr" target="_blank" rel="noopener" class="btn btn-primary gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-4"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.55v-2.15c-3.2.7-3.87-1.36-3.87-1.36-.52-1.33-1.28-1.69-1.28-1.69-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.19 1.76 1.19 1.03 1.75 2.69 1.25 3.34.95.1-.74.4-1.25.72-1.53-2.55-.29-5.23-1.28-5.23-5.68 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11.1 11.1 0 0 1 5.79 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.12 3.05.74.81 1.18 1.83 1.18 3.09 0 4.41-2.69 5.38-5.25 5.67.41.35.77 1.04.77 2.1v3.11c0 .31.2.67.8.55A11.51 11.51 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5Z"/></svg>
+              View on GitHub
+            </a>
+            <a href="#how" class="btn btn-ghost">See how it works</a>
+          </div>
+          <p class="mt-4 text-xs text-base-content/50">Requires Node.js 18+. Windows, macOS and Linux.</p>
+        </div>
+
+        <!-- Terminal mockup -->
+        <figure class="mockup-code mx-auto mt-12 max-w-2xl text-left text-sm leading-6 shadow-lg" aria-label="Example terminal session">
+          <pre data-prefix="$"><code>keyr init</code></pre>
+          <pre data-prefix=">"><code class="text-success">Vault created at ~/.keyr/vault.json</code></pre>
+          <pre data-prefix="$"><code>keyr set HIVE_API_KEY</code></pre>
+          <pre data-prefix=">"><code class="text-base-content/60">Secret value: ********</code></pre>
+          <pre data-prefix=">"><code class="text-success">Secret "HIVE_API_KEY" saved.</code></pre>
+          <pre data-prefix="$"><code>keyr run opencode</code></pre>
+          <pre data-prefix=">"><code class="text-base-content/60">Injected 1 secret(s) into the child process environment.</code></pre>
+          <pre data-prefix=">"><code class="text-base-content/60"># secrets live in process memory only — never on disk in plaintext</code></pre>
+        </figure>
+      </div>
+    </section>
+
+    <!-- Problem → Solution -->
+    <section class="border-y border-base-300 bg-base-200/40">
+      <div class="mx-auto grid max-w-6xl gap-8 px-4 py-16 md:grid-cols-2">
+        <div>
+          <h2 class="text-2xl font-bold">Where do your keys live now?</h2>
+          <ul class="mt-4 space-y-3 text-base-content/70">
+            <li class="flex gap-2"><span aria-hidden="true">—</span> A notes app or a message to yourself</li>
+            <li class="flex gap-2"><span aria-hidden="true">—</span> A plaintext <code>apiKey</code> in a config file, synced and backed up along with everything else</li>
+            <li class="flex gap-2"><span aria-hidden="true">—</span> Pasted into source code that gets committed and pushed</li>
+          </ul>
+          <p class="mt-4 text-sm text-base-content/60">None of these are attacks on you. They are just the only options when there is no proper place to put things.</p>
+        </div>
+        <div>
+          <h2 class="text-2xl font-bold">One vault, one file</h2>
+          <p class="mt-4 text-base-content/70">
+            Keyr keeps every secret in a single encrypted file at <code>~/.keyr/vault.json</code>.
+            The file can be copied, synced or stolen — without your passphrase it is unreadable.
+          </p>
+          <p class="mt-3 text-base-content/70">
+            When a command needs a key, <code>keyr run</code> injects secrets into that process's environment only.
+            Nothing is written to disk in plaintext, and the values disappear when the process exits.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section id="features" class="mx-auto max-w-6xl px-4 py-16">
+      <h2 class="text-center text-2xl font-bold sm:text-3xl">What it does</h2>
+      <p class="mt-2 text-center text-base-content/60">Four things, done deliberately. That is the whole feature list.</p>
+      <div class="mt-10 grid gap-5 sm:grid-cols-2">
+        <article class="card border border-base-300 bg-base-100">
+          <div class="card-body">
+            <h3 class="card-title text-lg">AES-256-GCM + scrypt</h3>
+            <p class="text-base-content/70">Node's built-in <code>crypto</code>: authenticated encryption, memory-hard key derivation, random salt per vault, fresh IV per write. No GPG, no system dependencies.</p>
+          </div>
+        </article>
+        <article class="card border border-base-300 bg-base-100">
+          <div class="card-body">
+            <h3 class="card-title text-lg">Single-file vault</h3>
+            <p class="text-base-content/70">Everything lives in <code>~/.keyr/vault.json</code>. Back it up like any file, delete it to reset. No account to provision, no store to migrate.</p>
+          </div>
+        </article>
+        <article class="card border border-base-300 bg-base-100">
+          <div class="card-body">
+            <h3 class="card-title text-lg"><code>keyr run</code> — secrets as env vars</h3>
+            <p class="text-base-content/70">Launch any command with your secrets injected as environment variables. Tools that read <code>{env:VAR}</code> in their config — like OpenCode — get real values without secrets ever touching disk.</p>
+          </div>
+        </article>
+        <article class="card border border-base-300 bg-base-100">
+          <div class="card-body">
+            <h3 class="card-title text-lg">TUI + scriptable</h3>
+            <p class="text-base-content/70">Interactive menu for everyday use; direct commands and a <code>KEYR_PASSPHRASE</code> environment variable for scripts. Passphrase is always prompted masked, never a CLI argument.</p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- How it works -->
+    <section id="how" class="border-y border-base-300 bg-base-200/40">
+      <div class="mx-auto max-w-6xl px-4 py-16">
+        <h2 class="text-center text-2xl font-bold sm:text-3xl">How it works</h2>
+        <div class="mt-10 grid gap-5 md:grid-cols-3">
+          <div class="card border border-base-300">
+            <div class="card-body">
+              <span class="badge badge-primary badge-soft w-fit">1</span>
+              <h3 class="card-title text-lg">Create the vault</h3>
+              <p class="text-base-content/70"><code>keyr init</code> — pick a passphrase, get an encrypted file. The passphrase stays in your head; it is never stored anywhere.</p>
+            </div>
+          </div>
+          <div class="card border border-base-300">
+            <div class="card-body">
+              <span class="badge badge-primary badge-soft w-fit">2</span>
+              <h3 class="card-title text-lg">Store secrets</h3>
+              <p class="text-base-content/70"><code>keyr set HIVE_API_KEY</code> — values prompted masked so they stay out of shell history and scrollback.</p>
+            </div>
+          </div>
+          <div class="card border border-base-300">
+            <div class="card-body">
+              <span class="badge badge-primary badge-soft w-fit">3</span>
+              <h3 class="card-title text-lg">Run tools safely</h3>
+              <p class="text-base-content/70"><code>keyr run opencode</code> opens the vault, injects secrets into the child process environment, and exits with the command. Point configs at names, not values: <code>"apiKey": "{env:HIVE_API_KEY}"</code></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Comparison -->
+    <section id="compare" class="mx-auto max-w-4xl px-4 py-16">
+      <h2 class="text-center text-2xl font-bold sm:text-3xl">How it compares</h2>
+      <p class="mt-2 text-center text-base-content/60">Established tools exist — Keyr is a specific trade-off, and it is fine to pick another.</p>
+      <div class="mt-8 overflow-x-auto">
+        <table class="table table-zebra">
+          <thead>
+            <tr><th scope="col">Tool</th><th scope="col">The trade-off</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>pass / gopass</strong></td><td>Battle-tested, but requires GPG (painful on Windows) and spreads one file per secret across a tree.</td></tr>
+            <tr><td><strong>Bitwarden CLI</strong></td><td>Needs a server (cloud or self-hosted) and an account.</td></tr>
+            <tr><td><strong>1Password CLI</strong></td><td>Great env injection — but paid, cloud, account.</td></tr>
+            <tr><td><strong>Infisical / Doppler</strong></td><td>Built for teams; heavy for personal secrets.</td></tr>
+            <tr><td><strong>age / sops</strong></td><td>Encrypt files, but are not managers — no list/set/get or TUI.</td></tr>
+            <tr><td><strong>Keyr</strong></td><td>Node-native (no GPG), single-file vault, <code>keyr run</code> injection, zero accounts. Local-only by design.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq" class="border-t border-base-300 bg-base-200/40">
+      <div class="mx-auto max-w-3xl px-4 py-16">
+        <h2 class="text-center text-2xl font-bold sm:text-3xl">Honest questions</h2>
+        <div class="mt-8 space-y-3">
+          <div class="collapse collapse-arrow border border-base-300 bg-base-100">
+            <input type="checkbox" checked aria-label="Is the vault file safe if copied?" />
+            <div class="collapse-title text-lg font-medium">Is the vault file safe if someone copies it?</div>
+            <div class="collapse-content text-base-content/70"><p>Yes, within the limits of the passphrase. The file is AES-256-GCM encrypted and the key is stretched with scrypt, so guessing is expensive. A weak passphrase weakens this — pick a long one.</p></div>
+          </div>
+          <div class="collapse collapse-arrow border border-base-300 bg-base-100">
+            <input type="checkbox" aria-label="Does this protect against malware?" />
+            <div class="collapse-title text-lg font-medium">Does this protect me from malware on my machine?</div>
+            <div class="collapse-content text-base-content/70"><p>No. Any process running as your user can read a child's environment or capture keystrokes. Keyr removes secrets from where they sit permanently on disk — it does not defend against active compromise. No local tool honestly can.</p></div>
+          </div>
+          <div class="collapse collapse-arrow border border-base-300 bg-base-100">
+            <input type="checkbox" aria-label="Where is my data sent?" />
+            <div class="collapse-title text-lg font-medium">Where is my data sent?</div>
+            <div class="collapse-content text-base-content/70"><p>Nowhere. Keyr has no network code at all. No telemetry, no update checks, no sync.</p></div>
+          </div>
+          <div class="collapse collapse-arrow border border-base-300 bg-base-100">
+            <input type="checkbox" aria-label="What if I forget the passphrase?" />
+            <div class="collapse-title text-lg font-medium">What if I forget the passphrase?</div>
+            <div class="collapse-content text-base-content/70"><p>The secrets are gone. There is no recovery, by design. <code>keyr reset</code> deletes the vault so you can start over.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-base-300">
+    <div class="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-8 sm:flex-row">
+      <div class="flex items-center gap-2 text-sm font-semibold">
+        <span class="inline-flex size-5 items-center justify-center rounded bg-linear-to-br from-keyr-purple to-keyr-blue text-white">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" class="size-3"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.8 12.2 21 2m-4 4 3 3m-6 0 2.5 2.5"/></svg>
+        </span>
+        Keyr
+      </div>
+      <p class="text-sm text-base-content/60">No server. No account. No telemetry.</p>
+      <a href="https://github.com/Rillwz/keyr" target="_blank" rel="noopener" class="link link-hover text-sm">github.com/Rillwz/keyr</a>
+    </div>
+  </footer>
+
+  <script src="./flyonui.js"></script>
+</body>
+</html>
