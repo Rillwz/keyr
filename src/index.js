@@ -145,7 +145,8 @@ async function cmdRun(commandParts) {  banner();
 program
   .name('keyr')
   .description('Local encrypted personal secret manager (AES-256-GCM)')
-  .version('1.0.0');
+  .version('1.0.0')
+  .enablePositionalOptions();
 
 program
   .command('init')
@@ -181,6 +182,7 @@ program
 program
   .command('run <command...>')
   .description('Run a command with vault secrets as environment variables')
+  .passThroughOptions()
   .action((commandParts) => guard(() => cmdRun(commandParts)));
 
 program
