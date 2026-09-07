@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { Text, Box } from 'ink';
 import TextInput from 'ink-text-input';
 import { getSecret, setSecret, deleteSecret, exportSecrets } from '../commands/shared.js';

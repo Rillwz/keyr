@@ -1,4 +1,4 @@
-﻿import { test, beforeEach, after } from 'node:test';
+import { test, beforeEach, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync, writeFileSync, readFileSync, chmodSync, existsSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';

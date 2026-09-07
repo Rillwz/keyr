@@ -1,4 +1,4 @@
-﻿import crypto from 'node:crypto';
+import crypto from 'node:crypto';
 
 const SCRYPT_N = 16384;      // 2^14 (~50ms di laptop modern)
 const SCRYPT_R = 8;

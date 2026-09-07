@@ -1,4 +1,4 @@
-﻿import fs from 'node:fs';
+import fs from 'node:fs';
 import * as store from '../lib/store.js';
 
 export function resetVault() {

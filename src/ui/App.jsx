@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { render, Text, Box } from 'ink';
 import TextInput from 'ink-text-input';
 import MainMenu from './MainMenu.jsx';
