@@ -13,6 +13,14 @@ Personal secret manager CLI — a free, self-hosted alternative to Bitwarden CLI
 Requires Node.js ≥ 18.
 
 ```bash
+npm install -g @rillwz/keyr        # from npm
+```
+
+or from source:
+
+```bash
+git clone https://github.com/Rillwz/keyr
+cd keyr
 npm install
 npm link          # make `keyr` available globally
 ```

@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#060608">
+<title>Keyr — Local-first CLI secret manager</title>
+<meta name="description" content="Keyr is a local-first CLI secret manager. AES-256-GCM, scrypt, one file, zero network. Inject secrets into any tool with keyr run.">
+<meta property="og:title" content="Keyr — Local-first CLI secret manager">
+<meta property="og:description" content="All your secrets. One vault. Zero network.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%23060608'/><g fill='none' stroke='%2334d399' stroke-width='5' stroke-linecap='round'><circle cx='24' cy='40' r='11'/><path d='M32 32 52 12'/><path d='M44 12l6 6'/></g></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+
+<style>
+/* ============ TOKENS ============ */
+:root{
+  --bg:#060608; --bg-soft:#0a0a0d;
+  --line:rgba(255,255,255,.08); --line-strong:rgba(255,255,255,.15);
+  --text:#f2f2f5; --text-dim:#a0a0ab; --text-faint:#66666f;
+  --green:#34d399; --green-hi:#6ee7b7; --green-soft:rgba(52,211,153,.12);
+  --amber:#fbbf24;
+  --disp:'Space Grotesk',ui-sans-serif,system-ui,sans-serif;
+  --sans:'Inter',ui-sans-serif,system-ui,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --pad:clamp(1.25rem,4.5vw,3rem);
+  --sec-pad:clamp(4.5rem,9vw,7.5rem);
+  --radius:16px;
+
+  /* Fluid modular type scale — every level scales with the viewport in lockstep */
+  --fs-xs:clamp(.72rem,.70rem + .10vw,.80rem);
+  --fs-sm:clamp(.81rem,.77rem + .20vw,.94rem);
+  --fs-md:clamp(.95rem,.88rem + .35vw,1.15rem);
+  --fs-lg:clamp(1.12rem,1.00rem + .55vw,1.48rem);
+  --fs-xl:clamp(1.32rem,1.10rem + .95vw,1.92rem);
+  --fs-2xl:clamp(1.56rem,1.20rem + 1.60vw,2.50rem);
+  --fs-3xl:clamp(1.86rem,1.28rem + 2.65vw,3.30rem);
+  --fs-5xl:clamp(2.90rem,1.35rem + 8.00vw,6.80rem);
+}
+
+/* ============ BASE ============ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;scrollbar-color:#2a2a31 var(--bg)}
+html,body{overflow-x:hidden;overflow-x:clip}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:var(--sans);font-size:var(--fs-md);line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+/* film-grain overlay */
+body::after{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:90;opacity:.04;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+::selection{background:rgba(52,211,153,.30);color:#fff}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+ul,ol{list-style:none}
+h1,h2,h3{font-family:var(--disp);font-weight:600;line-height:1.1;text-wrap:balance}
+.mono{font-family:var(--mono)}
+.container{max-width:1200px;margin-inline:auto;padding-inline:var(--pad)}
+.sec{padding-block:var(--sec-pad);border-top:1px solid rgba(255,255,255,.045);scroll-margin-top:80px}
+.ic{width:1.15em;height:1.15em;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ic--fill{fill:currentColor;stroke:none}
+.ok{color:var(--green)}
+[x-cloak]{display:none!important}
+
+/* reveal-on-scroll */
+.reveal{opacity:0;transform:translateY(26px);transition:opacity .8s cubic-bezier(.16,.6,.2,1),transform .8s cubic-bezier(.16,.6,.2,1)}
+.reveal.shown{opacity:1;transform:none}
+.d1{transition-delay:.08s}.d2{transition-delay:.16s}.d3{transition-delay:.24s}.d4{transition-delay:.32s}
+
+/* ============ SPOTLIGHT (Aceternity-style, Alpine directive) ============ */
+.spotlight{position:relative;overflow:hidden}
+.spotlight::before{
+  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;transition:opacity .35s ease;
+  background:radial-gradient(340px circle at var(--mx,50%) var(--my,50%),rgba(110,231,183,.10),transparent 65%);
+}
+.spotlight::after{
+  content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;opacity:0;transition:opacity .35s ease;
+  background:radial-gradient(260px circle at var(--mx,50%) var(--my,50%),rgba(110,231,183,.55),transparent 70%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;
+  mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  mask-composite:exclude;
+}
+.spotlight:hover::before,.spotlight:hover::after{opacity:1}
+
+/* ============ BUTTONS ============ */
+.btn-beam{ /* Aceternity "border beam" */
+  position:relative;display:inline-flex;align-items:center;gap:.6rem;overflow:hidden;
+  padding:.85rem 1.4rem;border-radius:13px;
+  border:1px solid var(--line-strong);
+  background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02));
+  font-family:var(--disp);font-weight:600;font-size:var(--fs-sm);color:var(--text);
+  transition:transform .22s ease,background .22s ease;
+}
+.btn-beam:hover{transform:translateY(-1px);background:linear-gradient(180deg,rgba(255,255,255,.13),rgba(255,255,255,.04))}
+.btn-beam .ic:last-child{color:var(--text-faint);transition:transform .25s ease}
+.btn-beam:hover .ic:last-child{transform:translate(2px,-2px);color:var(--green)}
+.beam-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.beam-svg rect{
+  width:calc(100% - 3px);height:calc(100% - 3px);
+  fill:none;stroke:var(--green-hi);stroke-width:1.6;stroke-linecap:round;
+  stroke-dasharray:14 86;animation:beam 4.2s linear infinite;
+  filter:drop-shadow(0 0 5px rgba(52,211,153,.9));
+}
+@keyframes beam{to{stroke-dashoffset:-100}}
+.btn-gh{
+  display:inline-flex;align-items:center;gap:.5rem;padding:.5rem .9rem;border-radius:10px;
+  border:1px solid var(--line-strong);color:var(--text-dim);font-size:var(--fs-sm);font-weight:500;
+  transition:color .2s,border-color .2s,background .2s;
+}
+.btn-gh:hover{color:var(--text);border-color:rgba(52,211,153,.45);background:var(--green-soft)}
+.btn-copy{
+  display:inline-flex;align-items:center;gap:.7rem;padding:.85rem 1.15rem;border-radius:13px;
+  border:1px dashed var(--line-strong);font-family:var(--mono);font-size:var(--fs-sm);
+  color:var(--text-dim);background:rgba(255,255,255,.02);transition:color .25s,border-color .25s;
+}
+.btn-copy:hover{color:var(--text);border-color:rgba(52,211,153,.5)}
+.btn-copy .p{color:var(--green)}
+
+/* ============ NAV ============ */
+.nav{position:fixed;top:0;left:0;right:0;z-index:100;border-bottom:1px solid transparent;transition:background .3s,border-color .3s,backdrop-filter .3s}
+.nav--solid{background:rgba(6,6,8,.72);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-bottom-color:var(--line)}
+.nav-inner{display:flex;align-items:center;gap:1.5rem;height:64px}
+.brand{display:flex;align-items:center;gap:.6rem}
+.brand-mark{width:2rem;height:2rem;border-radius:8px;display:grid;place-items:center;background:var(--green-soft);border:1px solid rgba(52,211,153,.3);color:var(--green)}
+.brand-mark .ic{width:1.15rem;height:1.15rem}
+.brand-name{font-family:var(--disp);font-weight:600;font-size:var(--fs-lg);letter-spacing:-.01em}
+.nav-links{display:flex;gap:1.6rem;margin-left:auto}
+.nav-link{position:relative;font-size:var(--fs-sm);color:var(--text-dim);transition:color .2s}
+.nav-link::after{content:"";position:absolute;left:0;right:100%;bottom:-5px;height:1px;background:var(--green);transition:right .25s ease}
+.nav-link:hover{color:var(--text)}
+.nav-link:hover::after{right:0}
+.nav-actions{display:flex;align-items:center;gap:.7rem;margin-left:auto}
+.nav-links + .nav-actions{margin-left:0}
+.nav-burger{display:none;padding:.4rem;color:var(--text-dim)}
+.nav-menu{position:absolute;top:100%;left:0;right:0;background:rgba(6,6,8,.96);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border-bottom:1px solid var(--line);padding:.7rem var(--pad) 1.3rem;display:flex;flex-direction:column}
+.nav-menu a{padding:.75rem .3rem;font-size:var(--fs-md);color:var(--text-dim);border-bottom:1px solid rgba(255,255,255,.04)}
+.nav-menu a:hover{color:var(--text)}
+@media (max-width:860px){
+  .nav-links{display:none}
+  .nav-burger{display:block}
+}
+
+/* ============ HERO (mouse-interactive) ============ */
+.hero{
+  position:relative;overflow:hidden;min-height:100vh;min-height:100svh;
+  display:flex;flex-direction:column;justify-content:center;
+  padding-top:clamp(6.5rem,14vh,8.5rem);padding-bottom:clamp(4.5rem,9vh,6rem);
+}
+.hero-bg{position:absolute;inset:0;z-index:0;pointer-events:none}
+.hero-bg::before{content:"";position:absolute;inset:0;background:radial-gradient(720px 340px at 50% -5%,rgba(52,211,153,.10),transparent 65%)}
+.grid-fade{position:absolute;inset:0;-webkit-mask-image:radial-gradient(ellipse 120% 85% at 50% 25%,#000 30%,transparent 78%);mask-image:radial-gradient(ellipse 120% 85% at 50% 25%,#000 30%,transparent 78%)}
+.grid-base,.grid-spot{position:absolute;inset:0;background-size:52px 52px}
+.grid-base{
+  background-image:linear-gradient(to right,rgba(255,255,255,.05) 1px,transparent 1px),
+                   linear-gradient(to bottom,rgba(255,255,255,.05) 1px,transparent 1px);
+}
+.grid-spot{
+  background-image:linear-gradient(to right,rgba(110,231,183,.22) 1px,transparent 1px),
+                   linear-gradient(to bottom,rgba(110,231,183,.22) 1px,transparent 1px);
+  -webkit-mask-image:radial-gradient(340px circle at var(--mx,50%) var(--my,28%),rgba(0,0,0,.95),transparent 72%);
+  mask-image:radial-gradient(340px circle at var(--mx,50%) var(--my,28%),rgba(0,0,0,.95),transparent 72%);
+}
+.mouse-glow{
+  position:absolute;inset:0;
+  background:radial-gradient(560px circle at var(--mx,50%) var(--my,28%),rgba(52,211,153,.07),transparent 60%);
+}
+.hero-inner{position:relative;z-index:1;text-align:center}
+.hero-badge{
+  display:inline-flex;align-items:center;gap:.55rem;padding:.5rem .95rem;border-radius:999px;
+  border:1px solid rgba(52,211,153,.3);background:rgba(52,211,153,.07);
+  font-family:var(--mono);font-size:var(--fs-xs);color:var(--text-dim);letter-spacing:.08em;
+}
+.pulse{position:relative;width:7px;height:7px;border-radius:50%;background:var(--green);flex:none}
+.pulse::after{content:"";position:absolute;inset:-3px;border-radius:50%;border:1px solid var(--green);animation:ping 1.9s cubic-bezier(0,0,.2,1) infinite}
+@keyframes ping{0%{transform:scale(.55);opacity:.9}80%,100%{transform:scale(1.7);opacity:0}}
+.hero-title{margin-top:1.4rem;font-size:var(--fs-5xl);letter-spacing:-.025em;line-height:1.04}
+.grad-text{
+  background:linear-gradient(90deg,#34d399,#a7f3d0 50%,#34d399);background-size:200% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  animation:grad 5.5s linear infinite;
+}
+@keyframes grad{to{background-position:-200% 0}}
+.hero-sub{margin:1.3rem auto 0;max-width:58ch;color:var(--text-dim);font-size:var(--fs-md);line-height:1.65}
+.hero-cta{display:flex;flex-wrap:wrap;justify-content:center;gap:.9rem;margin-top:2.1rem}
+.hero-meta{margin-top:1.2rem;font-family:var(--mono);font-size:var(--fs-xs);color:var(--text-faint);letter-spacing:.05em}
+
+/* terminal + parallax chips */
+.hero-scene{position:relative;width:min(660px,100%);margin:clamp(2.6rem,7vh,4.2rem) auto 0}
+.parallax{position:absolute;z-index:2;transform:translate3d(calc(var(--px,0)*var(--d,20)*1px),calc(var(--py,0)*var(--d,20)*.7px),0);transition:transform .25s ease-out}
+.p-a{top:-1.5rem;left:-2.3rem;--d:22}
+.p-b{bottom:-1.3rem;right:-1.4rem;--d:34}
+.p-c{top:36%;right:-8.6rem;--d:15}
+.float-chip{
+  display:inline-flex;align-items:center;gap:.55rem;padding:.5rem .8rem;border-radius:999px;
+  border:1px solid var(--line-strong);background:rgba(10,10,14,.72);
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+  font-family:var(--mono);font-size:var(--fs-xs);color:var(--text-dim);
+  animation:floaty 7s ease-in-out infinite;
+}
+.float-chip b{width:6px;height:6px;border-radius:50%;background:var(--green);flex:none}
+.float-chip b.b-amber{background:var(--amber)}
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+@media (max-width:1180px){.p-c{display:none}}
+@media (max-width:900px){.parallax{display:none}}
+.terminal{
+  background:rgba(9,9,12,.84);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  border:1px solid rgba(255,255,255,.10);border-radius:16px;text-align:left;
+  box-shadow:0 40px 90px -30px rgba(0,0,0,.85),0 0 70px -25px rgba(52,211,153,.18),inset 0 1px 0 rgba(255,255,255,.06);
+  transform:perspective(1100px) rotateX(calc(var(--py,0)*-4deg)) rotateY(calc(var(--px,0)*5deg));
+  transition:transform .25s ease-out;will-change:transform;
+}
+@media (max-width:760px){.terminal{transform:none}}
+.term-head{display:flex;align-items:center;gap:.75rem;padding:.7rem .95rem;border-bottom:1px solid var(--line)}
+.dots{display:flex;gap:.45rem}
+.dots i{width:10px;height:10px;border-radius:50%}
+.dots i:nth-child(1){background:#ff5f57}.dots i:nth-child(2){background:#febc2e}.dots i:nth-child(3){background:#28c840}
+.term-title{flex:1;text-align:center;font-family:var(--mono);font-size:var(--fs-xs);color:var(--text-faint)}
+.term-badge{display:flex;align-items:center;gap:.4rem;font-family:var(--mono);font-size:var(--fs-xs);color:var(--green)}
+.term-body{
+  padding:1rem 1.15rem 1.2rem;min-height:17.5em;
+  font-family:var(--mono);font-size:clamp(.72rem,.60rem + .55vw,.88rem);line-height:1.8;
+}
+.tl{white-space:pre-wrap;word-break:break-word}
+.tl.gap{height:.5em}
+.tl-pre{color:var(--green)}
+.tl.cmd{color:var(--text)}
+.tl.out{color:var(--text-dim)}
+.tl.ok{color:var(--green)}
+.tl.dim{color:var(--text-faint)}
+.tl.acc{color:#a7f3d0}
+.cursor{display:inline-block;width:.55em;height:1.05em;margin-left:.15em;background:var(--green);vertical-align:-.15em;animation:blink 1.05s step-end infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.term-foot{display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;padding:.6rem .95rem;border-top:1px solid var(--line);font-family:var(--mono);font-size:var(--fs-xs);color:var(--text-faint)}
+.scroll-cue{position:absolute;left:50%;bottom:1.3rem;z-index:2;color:var(--text-faint);animation:cue 2.2s ease-in-out infinite}
+@keyframes cue{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,9px)}}
+@media (max-height:640px){.scroll-cue{display:none}}
+
+/* ============ SECTION SCAFFOLD ============ */
+.sec-head{text-align:center;max-width:74ch;margin:0 auto clamp(2.2rem,5vw,3.4rem)}
+.eyebrow{display:inline-flex;align-items:center;gap:.6rem;font-family:var(--mono);font-size:var(--fs-xs);letter-spacing:.22em;color:var(--green)}
+.eyebrow::before{content:"";width:1.5rem;height:1px;background:var(--green);opacity:.6}
+.sec-head h2{margin-top:1rem;font-size:var(--fs-3xl);letter-spacing:-.02em}
+.lede{margin-top:.9rem;color:var(--text-dim);font-size:var(--fs-md);line-height:1.65}
+
+/* ============ CREATORS STRIP ============ */
+.creators{padding-block:clamp(2rem,4vw,3rem);border-top:1px solid rgba(255,255,255,.045);border-bottom:1px solid rgba(255,255,255,.045);background:var(--bg-soft)}
+.creators-label{font-family:var(--mono);font-size:var(--fs-xs);letter-spacing:.22em;color:var(--text-faint)}
+.creators-row{display:flex;flex-wrap:wrap;gap:.75rem;margin-top:1rem}
+.creator-card{
+  display:inline-flex;align-items:center;gap:.6rem;padding:.8rem 1.15rem;border-radius:12px;
+  border:1px solid var(--line);background:rgba(255,255,255,.02);
+  font-family:var(--mono);font-size:var(--fs-sm);color:var(--text-dim);
+  transition:color .25s,transform .25s;
+}
+.creator-card .ic{width:.95em;height:.95em;color:var(--text-faint);transition:color .25s,transform .25s}
+.creator-card:hover{color:var(--text);transform:translateY(-2px)}
+.creator-card:hover .ic{color:var(--green);transform:translate(2px,-2px)}
+
+/* ============ BENTO ============ */
+.bento{display:grid;grid-template-columns:repeat(6,1fr);gap:clamp(.9rem,2vw,1.3rem)}
+.span-3{grid-column:span 3}
+.span-2{grid-column:span 2}
+.card{
+  position:relative;display:flex;flex-direction:column;gap:.75rem;
+  padding:clamp(1.1rem,2.2vw,1.6rem);border:1px solid var(--line);border-radius:var(--radius);
+  background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.012));
+}
+.card h3{font-size:var(--fs-lg);letter-spacing:-.01em}
+.card p{color:var(--text-dim);font-size:var(--fs-sm);line-height:1.65}
+.card p code{font-family:var(--mono);font-size:.92em;color:var(--green-hi);background:rgba(52,211,153,.08);padding:.08em .35em;border-radius:4px}
+.card-icon{width:2.4rem;height:2.4rem;border-radius:10px;display:grid;place-items:center;border:1px solid rgba(52,211,153,.25);background:var(--green-soft);color:var(--green)}
+.card-icon .ic{width:1.3rem;height:1.3rem}
+.card-tag{position:absolute;top:1rem;right:1.1rem;font-family:var(--mono);font-size:var(--fs-xs);color:var(--text-faint);letter-spacing:.08em}
+.viz{
+  margin-top:auto;border:1px solid var(--line);border-radius:10px;background:rgba(4,4,6,.55);
+  padding:.85rem .95rem;font-family:var(--mono);font-size:var(--fs-xs);color:var(--text-dim);
+}
+.viz-seal{display:flex;flex-direction:column;gap:.45rem}
+.seal-row{display:flex;gap:.7rem;align-items:baseline}
+.seal-k{width:2.6rem;flex:none;color:var(--text-faint)}
+.cipher{color:var(--text-dim);letter-spacing:.04em}
+.seal-ok{color:var(--green)}
+.viz-chips{display:flex;flex-wrap:wrap;gap:.4rem}
+.pchip{display:inline-flex;align-items:center;padding:.28rem .6rem;border:1px solid var(--line-strong);border-radius:6px;background:rgba(255,255,255,.02);color:var(--text-dim)}
+.pchip--hi{color:var(--green);border-color:rgba(52,211,153,.35)}
+.viz-run{display:flex;gap:.6rem;align-items:baseline}
+.viz-run .p{color:var(--green)}
+.viz-tui{display:flex;flex-direction:column;gap:.15rem}
+.tui-item{display:flex;gap:.6rem;color:var(--text-faint)}
+.tui-caret{width:.8rem;flex:none;color:var(--green);opacity:0}
+.tui-item.on{color:var(--text)}
+.tui-item.on .tui-caret{opacity:1}
+.viz-net{display:flex;flex-direction:column}
+.net-row{display:flex;justify-content:space-between;color:var(--text-faint);padding-block:.14rem}
+.net-row b{color:var(--green);font-weight:500}
+.net-big{margin-top:.6rem;padding-top:.55rem;border-top:1px dashed var(--line);color:var(--text);text-align:center}
+.viz-file{display:flex;flex-direction:column}
+.file-tab{display:flex;align-items:center;gap:.5rem;color:var(--green);padding-bottom:.5rem;border-bottom:1px dashed var(--line);margin-bottom:.55rem}
+.file-body{line-height:1.7;white-space:pre;overflow:hidden}
+.file-badges{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.65rem}
+.viz-iv{display:flex;flex-direction:column;gap:.4rem}
+.iv-row{display:flex;gap:.7rem;align-items:baseline}
+.iv-row>span{width:3.6rem;flex:none;color:var(--text-faint)}
+.iv-row code{color:#9be8c8;letter-spacing:.03em}
+.iv-note{margin-top:.45rem;color:var(--text-faint)}
+.viz-tree{line-height:1.65;white-space:pre;overflow-x:auto}
+.viz-tree .ok{color:var(--green)}
+@media (max-width:1020px){
+  .bento{grid-template-columns:repeat(2,1fr)}
+  .span-3{grid-column:span 2}
+  .span-2{grid-column:span 1}
+}
+@media (max-width:620px){
+  .bento{grid-template-columns:1fr}
+  .span-2,.span-3{grid-column:span 1}
+}
+
+/* ============ FLOW (lifecycle) ============ */
+.flow{display:flex;align-items:stretch;gap:.65rem}
+.flow-node{
+  flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;gap:.55rem;text-align:center;
+  padding:clamp(1rem,2.5vw,1.5rem) .8rem;border:1px solid var(--line);border-radius:14px;
+  background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.01));
+}
+.flow-node .ic{width:1.5rem;height:1.5rem;color:var(--green)}
+.flow-name{font-family:var(--disp);font-weight:600;font-size:var(--fs-md)}
+.flow-sub{font-family:var(--mono);font-size:var(--fs-xs);color:var(--text-faint);line-height:1.5}
+.flow-link{position:relative;flex:1 1 0;max-width:88px;height:2px;align-self:center;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden}
+.flow-link::after{
+  content:"";position:absolute;top:0;bottom:0;width:45%;left:-45%;border-radius:2px;
+  background:linear-gradient(90deg,transparent,rgba(52,211,153,.85),transparent);
+  animation:flowx 2.4s linear infinite;
+}
+@keyframes flowx{to{left:100%}}
+@media (max-width:860px){
+  .flow{flex-direction:column;align-items:center}
+  .flow-node{flex:0 0 auto;width:100%;max-width:420px}
+  .flow-link{width:2px;height:38px;max-width:none;flex:0 0 auto}
+  .flow-link::after{width:100%;height:45%;top:-45%;left:0;bottom:auto;
+    background:linear-gradient(180deg,transparent,rgba(52,211,153,.85),transparent);
+    animation:flowy 1.7s linear infinite}
+  @keyframes flowy{to{top:100%}}
+}
+.panels{display:grid;grid-template-columns:1fr 1fr;gap:clamp(1rem,2.5vw,1.5rem);margin-top:clamp(2rem,5vw,3rem)}
+@media (max-width:900px){.panels{grid-template-columns:1fr}}
+.panel{border:1px solid var(--line);border-radius:14px;background:#0a0a0e;overflow:hidden}
+.panel-head{display:flex;align-items:center;gap:.8rem;padding:.65rem .95rem;border-bottom:1px solid var(--line)}
+.panel-title{font-family:var(--mono);font-size:var(--fs-xs);color:var(--text-faint)}
+.panel-body{padding:1rem 1.15rem;font-family:var(--mono);font-size:var(--fs-sm);line-height:1.75;color:var(--text-dim);overflow-x:auto}
+.tok-k{color:#7dd3fc}.tok-s{color:#6ee7b7}.tok-n{color:#fbbf24}.tok-c{color:var(--text-faint)}
+.panel-foot{padding:.7rem .95rem;border-top:1px solid var(--line);font-family:var(--mono);font-size:var(--fs-xs);color:var(--text-faint)}
+.flow-note{margin:1.6rem auto 0;max-width:72ch;text-align:center;color:var(--text-faint);font-size:var(--fs-sm);line-height:1.65}
+
+/* ============ RUN SECTION ============ */
+.run-grid{display:grid;grid-template-columns:5fr 7fr;gap:clamp(1.2rem,3vw,2.2rem)}
+@media (max-width:920px){.run-grid{grid-template-columns:1fr}}
+.steps{display:flex;flex-direction:column;gap:1rem}
+.step{display:flex;gap:1rem;padding:1.1rem 1.2rem;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.02)}
+.step-n{font-family:var(--mono);font-size:var(--fs-sm);color:var(--green);padding-top:.2rem}
+.step h3{font-size:var(--fs-md);margin-bottom:.3rem}
+.step p{color:var(--text-dim);font-size:var(--fs-sm);line-height:1.6}
+.step p code,.tools p code{font-family:var(--mono);font-size:.92em;color:var(--green-hi)}
+.tools{margin-top:clamp(2rem,4vw,2.8rem)}
+.tools-label{font-family:var(--mono);font-size:var(--fs-xs);letter-spacing:.22em;color:var(--text-faint);text-align:center}
+.tool-chips{display:flex;flex-wrap:wrap;justify-content:center;gap:.6rem;margin-top:1rem}
+.tool-chip{
+  display:inline-flex;align-items:center;gap:.5rem;padding:.55rem .95rem;border-radius:999px;
+  border:1px solid var(--line);background:rgba(255,255,255,.02);
+  font-family:var(--mono);font-size:var(--fs-sm);color:var(--text-dim);
+  transition:color .2s,border-color .2s;
+}
+.tool-chip b{width:6px;height:6px;border-radius:50%;background:var(--green);flex:none}
+.tool-chip:hover{color:var(--text);border-color:rgba(52,211,153,.4)}
+.run-strip{
+  margin-top:1.6rem;display:flex;flex-wrap:wrap;align-items:center;gap:1.1rem 1.6rem;
+  border:1px dashed var(--line-strong);border-radius:14px;padding:1.1rem 1.3rem;
+}
+.run-cfg{font-family:var(--mono);font-size:var(--fs-sm);color:var(--green-hi)}
+.run-strip p{flex:1;min-width:24ch;color:var(--text-dim);font-size:var(--fs-sm);line-height:1.6}
+.run-strip em{font-style:normal;color:var(--text)}
+
+/* ============ COMMANDS ============ */
+.cmds{display:flex;flex-direction:column;gap:.55rem}
+.cmd-row{
+  display:grid;grid-template-columns:minmax(220px,36%) 1fr;gap:1rem;align-items:center;
+  padding:.85rem 1.05rem;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.015);
+  transition:border-color .2s,background .2s;
+}
+.cmd-row:hover{border-color:var(--line-strong);background:rgba(255,255,255,.03)}
+.cmd-btn{display:flex;align-items:center;gap:.6rem;font-family:var(--mono);font-size:var(--fs-sm);color:var(--text);width:100%;text-align:left}
+.cmd-btn .p{color:var(--green);flex:none}
+.cmd-copy{margin-left:auto;display:flex;color:var(--text-faint);transition:color .2s}
+.cmd-btn:hover .cmd-copy{color:var(--green)}
+.cmd-desc{color:var(--text-dim);font-size:var(--fs-sm);line-height:1.55}
+.cmd-desc code{font-family:var(--mono);font-size:.92em;color:var(--green-hi)}
+@media (max-width:640px){.cmd-row{grid-template-columns:1fr}}
+
+/* ============ LIMITS ============ */
+.limits-grid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(.9rem,2vw,1.3rem)}
+@media (max-width:720px){.limits-grid{grid-template-columns:1fr}}
+.card--warn .card-icon{color:var(--amber);border-color:rgba(251,191,36,.28);background:rgba(251,191,36,.07)}
+.limits .eyebrow{color:var(--amber)}
+.limits .eyebrow::before{background:var(--amber)}
+
+/* ============ CTA ============ */
+.cta{position:relative;overflow:hidden;text-align:center;border-top:1px solid rgba(255,255,255,.045)}
+.cta::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(640px 320px at 50% 110%,rgba(52,211,153,.10),transparent 65%);
+}
+.cta-inner{position:relative}
+.cta h2{font-size:var(--fs-3xl);letter-spacing:-.02em}
+.cta-sub{margin-top:.8rem;color:var(--text-dim)}
+.install{
+  display:inline-flex;align-items:center;gap:.8rem;margin:2rem auto 1.4rem;
+  padding:.7rem .7rem .7rem 1.15rem;border:1px solid var(--line-strong);border-radius:12px;background:#0a0a0e;
+  font-family:var(--mono);font-size:var(--fs-sm);
+}
+.install .p{color:var(--green)}
+.install button{display:flex;padding:.45rem;border-radius:8px;color:var(--text-faint);transition:color .2s,background .2s}
+.install button:hover{color:var(--green);background:var(--green-soft)}
+.cta-note{margin-top:1.4rem;font-family:var(--mono);font-size:var(--fs-xs);color:var(--text-faint);letter-spacing:.05em}
+
+/* ============ FOOTER ============ */
+.footer{border-top:1px solid var(--line);padding:clamp(2.5rem,5vw,3.5rem) 0 2rem}
+.foot-grid{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:2rem}
+@media (max-width:700px){.foot-grid{grid-template-columns:1fr}}
+.foot-brand p{margin-top:.9rem;color:var(--text-dim);font-size:var(--fs-sm);max-width:34ch}
+.foot-label{font-family:var(--mono);font-size:var(--fs-xs);letter-spacing:.22em;color:var(--text-faint);margin-bottom:.9rem}
+.foot-col{display:flex;flex-direction:column;gap:.55rem}
+.foot-col a{display:inline-flex;align-items:center;gap:.45rem;color:var(--text-dim);font-size:var(--fs-sm);transition:color .2s;width:fit-content}
+.foot-col a:hover{color:var(--green)}
+.foot-col .ic{width:.85em;height:.85em;color:var(--text-faint)}
+.foot-bottom{
+  display:flex;justify-content:space-between;flex-wrap:wrap;gap:.6rem 1.5rem;
+  margin-top:2.4rem;padding-top:1.3rem;border-top:1px solid var(--line);
+  font-family:var(--mono);font-size:var(--fs-xs);color:var(--text-faint);
+}
+
+/* ============ MOTION SAFETY ============ */
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+  .reveal{opacity:1!important;transform:none!important}
+}
+</style>
+<noscript><style>.reveal{opacity:1;transform:none}</style></noscript>
+</head>
+
+<body id="top">
+
+<!-- ===== SVG ICON SPRITE ===== -->
+<svg style="display:none" aria-hidden="true">
+  <symbol id="i-key" viewBox="0 0 24 24"><path d="m21 2-9.6 9.6"/><circle cx="7.5" cy="15.5" r="5.5"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+  <symbol id="i-cpu" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/><rect x="9.5" y="9.5" width="5" height="5"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></symbol>
+  <symbol id="i-wifi-off" viewBox="0 0 24 24"><path d="M2 9a15 15 0 0 1 20 0"/><path d="M5 13a10 10 0 0 1 14 0"/><path d="M8.5 16.8a5 5 0 0 1 7 0"/><path d="M12 20h.01"/><path d="m2 2 20 20"/></symbol>
+  <symbol id="i-zap" viewBox="0 0 24 24"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></symbol>
+  <symbol id="i-terminal" viewBox="0 0 24 24"><path d="m4 17 5-5-5-5"/><path d="M12 19h8"/></symbol>
+  <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></symbol>
+  <symbol id="i-code" viewBox="0 0 24 24"><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/></symbol>
+  <symbol id="i-rotate" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-9-9c2.5 0 4.8 1 6.4 2.6L21 8"/><path d="M21 3v5h-5"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.3 3.9 1.8 18.1a2 2 0 0 0 1.7 2.9h17a2 2 0 0 0 1.7-2.9L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+  <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M2 12C5.5 5.5 9 5.5 12 5.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.5"/><path d="m3 3 18 18"/></symbol>
+  <symbol id="i-key-off" viewBox="0 0 24 24"><path d="m21 2-9.6 9.6"/><circle cx="7.5" cy="15.5" r="5.5"/><path d="m15.5 7.5 3 3L22 7l-3-3"/><path d="m2 2 20 20"/></symbol>
+  <symbol id="i-shield-q" viewBox="0 0 24 24"><path d="M12 2 4 5v6c0 5.3 3.4 8.7 8 10 4.6-1.3 8-4.7 8-10V5z"/><path d="M9.6 9a2.5 2.5 0 1 1 3.4 2.3c-.8.3-1 .8-1 1.7"/><path d="M12 16.5h.01"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-arrow-r" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></symbol>
+  <symbol id="i-arrow-ur" viewBox="0 0 24 24"><path d="M7 17 17 7"/><path d="M8 7h9v9"/></symbol>
+  <symbol id="i-chev-d" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-github" viewBox="0 0 24 24"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></symbol>
+</svg>
+
+<!-- ===== ALPINE: components, magic & directives (registered before Alpine boots) ===== -->
+<script>
+document.addEventListener('alpine:init', () => {
+
+  /* $copy — clipboard with fallback */
+  function fallbackCopy(text){
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.setAttribute('readonly','');
+    ta.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); } catch(e) {}
+    ta.remove();
+  }
+  Alpine.magic('copy', () => (text) => {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+    }
+    return Promise.resolve(fallbackCopy(text));
+  });
+
+  /* x-spotlight — Aceternity-style mouse-tracking card glow (sets --mx/--my) */
+  Alpine.directive('spotlight', (el) => {
+    el.classList.add('spotlight');
+    let raf = 0;
+    const onMove = (e) => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        const r = el.getBoundingClientRect();
+        el.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+        el.style.setProperty('--my', (e.clientY - r.top) + 'px');
+      });
+    };
+    el.addEventListener('pointermove', onMove);
+    return () => { el.removeEventListener('pointermove', onMove); if (raf) cancelAnimationFrame(raf); };
+  });
+
+  /* hero — spotlight grid + parallax vars (--px/--py in [-.5,.5]) */
+  Alpine.data('hero', () => ({
+    onMove(e) {
+      const el = this.$el, r = el.getBoundingClientRect();
+      const x = e.clientX - r.left, y = e.clientY - r.top;
+      el.style.setProperty('--mx', x + 'px');
+      el.style.setProperty('--my', y + 'px');
+      el.style.setProperty('--px', (x / r.width - 0.5).toFixed(4));
+      el.style.setProperty('--py', (y / r.height - 0.5).toFixed(4));
+    },
+    onLeave() {
+      this.$el.style.setProperty('--px', 0);
+      this.$el.style.setProperty('--py', 0);
+    },
+  }));
+
+  /* terminal — self-typing, looping demo */
+  Alpine.data('terminal', () => ({
+    lines: [], typing: true,
+    script: [
+      { cmd: 'keyr init' },
+      { out: 'vault created → ~/.keyr/vault.json', cls: 'ok' },
+      { gap: true },
+      { cmd: 'keyr set ANTHROPIC_API_KEY' },
+      { out: 'passphrase: ••••••••••', cls: 'dim' },
+      { out: 'stored · aes-256-gcm · fresh iv', cls: 'ok' },
+      { gap: true },
+      { cmd: 'keyr run -- claude' },
+      { out: '1 secret injected → child env', cls: 'acc' },
+    ],
+    init() {
+      if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        this.lines = this.script.map(s => s.cmd
+          ? { pre: '$ ', text: s.cmd, cls: 'cmd' }
+          : { text: s.out || '', cls: s.cls || 'out' });
+        this.typing = false;
+        return;
+      }
+      this.loop();
+    },
+    async loop() {
+      const tok = (this._tok = {});
+      const wait = ms => new Promise(r => setTimeout(r, ms));
+      while (this.$el.isConnected) {
+        this.lines = []; this.typing = true;
+        for (const step of this.script) {
+          if (tok !== this._tok || !this.$el.isConnected) return;
+          if (step.gap) { this.lines.push({ text: '', cls: 'gap' }); continue; }
+          if (step.cmd) {
+            const line = { pre: '$ ', text: '', cls: 'cmd' };
+            this.lines.push(line);
+            for (const ch of step.cmd) {
+              if (tok !== this._tok) return;
+              await wait(16 + Math.random() * 42);
+              line.text += ch;
+            }
+            await wait(420);
+          } else {
+            await wait(450);
+            if (tok !== this._tok) return;
+            this.lines.push({ text: step.out, cls: step.cls });
+          }
+        }
+        this.typing = false;
+        await wait(6000);
+      }
+    },
+  }));
+
+  /* scramble — living ciphertext (base64 or hex) */
+  Alpine.data('scramble', () => ({
+    text: '',
+    init() {
+      const el = this.$el;
+      const len = +(el.dataset.len || 22);
+      const set = el.dataset.set === 'hex'
+        ? '0123456789abcdef'
+        : 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+      const gen = () => { let s = ''; for (let i = 0; i < len; i++) s += set[(Math.random() * set.length) | 0]; return s; };
+      this.text = gen();
+      if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      (async () => {
+        while (el.isConnected) {
+          await new Promise(r => setTimeout(r, 1100 + Math.random() * 900));
+          if (!el.isConnected) return;
+          this.text = gen();
+        }
+      })();
+    },
+  }));
+
+  /* tuiMenu — cycling TUI highlight */
+  Alpine.data('tuiMenu', () => ({
+    idx: 0,
+    items: ['List', 'Get', 'Set', 'Delete', 'Export', 'Quit'],
+    init() {
+      if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      setInterval(() => { this.idx = (this.idx + 1) % this.items.length; }, 1100);
+    },
+  }));
+});
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/intersect@3.x.x/dist/cdn.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+<!-- ===== NAV ===== -->
+<header class="nav" x-data="{ open:false, scrolled:false }"
+        @scroll.window="scrolled = window.scrollY > 24"
+        :class="(scrolled || open) ? 'nav--solid' : ''">
+  <div class="container nav-inner">
+    <a class="brand" href="#top" aria-label="Keyr home">
+      <span class="brand-mark"><svg class="ic"><use href="#i-key"/></svg></span>
+      <span class="brand-name">keyr</span>
+    </a>
+    <nav class="nav-links" aria-label="Primary">
+      <a class="nav-link" href="#features">Features</a>
+      <a class="nav-link" href="#how">How it works</a>
+      <a class="nav-link" href="#run">keyr run</a>
+      <a class="nav-link" href="#commands">Commands</a>
+      <a class="nav-link" href="#limits">Limits</a>
+    </nav>
+    <div class="nav-actions">
+      <a class="btn-gh" href="https://github.com/Rillwz/keyr" target="_blank" rel="noopener">
+        <svg class="ic ic--fill"><use href="#i-github"/></svg><span>GitHub</span>
+      </a>
+      <button class="nav-burger" @click="open = !open" :aria-expanded="open" aria-label="Toggle menu">
+        <svg class="ic" x-show="!open"><use href="#i-menu"/></svg>
+        <svg class="ic" x-show="open" x-cloak><use href="#i-x"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="nav-menu" x-show="open" x-cloak x-transition.opacity @click.outside="open = false">
+    <a href="#features" @click="open=false">Features</a>
+    <a href="#how" @click="open=false">How it works</a>
+    <a href="#run" @click="open=false">keyr run</a>
+    <a href="#commands" @click="open=false">Commands</a>
+    <a href="#limits" @click="open=false">Limits</a>
+    <a href="https://github.com/Rillwz/keyr" target="_blank" rel="noopener">GitHub ↗</a>
+  </div>
+</header>
+
+<main>
+
+  <!-- ===== HERO — interactive with mouse ===== -->
+  <section class="hero" x-data="hero" @mousemove="onMove($event)" @mouseleave="onLeave()"
+           style="--mx:50%;--my:28%;--px:0;--py:0">
+    <div class="hero-bg" aria-hidden="true">
+      <div class="grid-fade">
+        <div class="grid-base"></div>
+        <div class="grid-spot"></div>
+      </div>
+      <div class="mouse-glow"></div>
+    </div>
+
+    <div class="container hero-inner">
+      <h1 class="hero-title reveal" x-intersect.once="$el.classList.add('shown')">
+        All your secrets.<br>
+        One vault. <span class="grad-text">Zero network.</span>
+      </h1>
+
+      <p class="hero-sub reveal d2" x-intersect.once="$el.classList.add('shown')">
+        Keyr is a local-first CLI vault for API keys and credentials — AES-256-GCM encrypted,
+        scrypt-hardened, stored in a single file at <span class="mono">~/.keyr/vault.json</span>,
+        and injected into any tool with <span class="mono">keyr run</span>. Nothing ever leaves your machine.
+      </p>
+
+      <div class="hero-cta reveal d3" x-intersect.once="$el.classList.add('shown')">
+        <a class="btn-beam" href="https://github.com/Rillwz/keyr" target="_blank" rel="noopener">
+          <svg class="beam-svg" aria-hidden="true"><rect x="1.5" y="1.5" rx="12" pathLength="100"/></svg>
+          <svg class="ic ic--fill"><use href="#i-github"/></svg>
+          <span>Star on GitHub</span>
+          <svg class="ic"><use href="#i-arrow-ur"/></svg>
+        </a>
+        <button class="btn-copy" x-data="{c:false}"
+                @click="$copy('npm install -g @rillwz/keyr'); c = true; setTimeout(() => c = false, 1600)"
+                aria-label="Copy install command">
+          <span class="p">$</span><span>npm install -g @rillwz/keyr</span>
+          <svg class="ic" x-show="!c"><use href="#i-copy"/></svg>
+          <svg class="ic ok" x-show="c" x-cloak><use href="#i-check"/></svg>
+        </button>
+      </div>
+
+      <p class="hero-meta reveal d3" x-intersect.once="$el.classList.add('shown')">
+        Node ≥ 18 · Windows / macOS / Linux · no account · no sync · no telemetry
+      </p>
+
+      <div class="hero-scene reveal d4" x-intersect.once="$el.classList.add('shown')">
+        <div class="parallax p-a" aria-hidden="true"><div class="float-chip"><b></b>AES-256-GCM</div></div>
+        <div class="parallax p-b" aria-hidden="true"><div class="float-chip" style="animation-delay:-3s"><b class="b-amber"></b>scrypt · N=16384</div></div>
+        <div class="parallax p-c" aria-hidden="true"><div class="float-chip" style="animation-delay:-1.5s"><b></b>1 file · 0o600</div></div>
+
+        <div class="terminal">
+          <div class="term-head">
+            <span class="dots"><i></i><i></i><i></i></span>
+            <span class="term-title">keyr — ~/.keyr/vault.json</span>
+            <span class="term-badge"><svg class="ic"><use href="#i-lock"/></svg>AES-GCM</span>
+          </div>
+          <div class="term-body" x-data="terminal">
+            <template x-for="(l, i) in lines" :key="i">
+              <div class="tl" :class="l.cls">
+                <span class="tl-pre" x-text="l.pre || ''"></span><span x-text="l.text"></span><span class="cursor" x-show="typing && i === lines.length - 1"></span>
+              </div>
+            </template>
+            <div class="tl" x-show="lines.length === 0"><span class="cursor"></span></div>
+          </div>
+          <div class="term-foot">
+            <span>vault: 1 file</span><span>network calls: 0</span><span>telemetry: 0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="scroll-cue" aria-hidden="true"><svg class="ic"><use href="#i-chev-d"/></svg></div>
+  </section>
+
+  <!-- ===== CREATORS STRIP ===== -->
+  <section class="creators" x-data="{}" aria-label="Other projects by the creator">
+    <div class="container reveal" x-intersect.once="$el.classList.add('shown')">
+      <p class="creators-label">FROM THE CREATOR OF</p>
+      <div class="creators-row">
+        <a class="creator-card" x-spotlight href="https://zenhance.pages.dev" target="_blank" rel="noopener">
+          <span>zenhance</span><svg class="ic"><use href="#i-arrow-ur"/></svg>
+        </a>
+        <a class="creator-card" x-spotlight href="https://2constant.pages.dev" target="_blank" rel="noopener">
+          <span>2constant</span><svg class="ic"><use href="#i-arrow-ur"/></svg>
+        </a>
+        <a class="creator-card" x-spotlight href="https://nonlinear.pages.dev" target="_blank" rel="noopener">
+          <span>nonlinear</span><svg class="ic"><use href="#i-arrow-ur"/></svg>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== FEATURES (bento) ===== -->
+  <section class="sec features" id="features" x-data="{}">
+    <div class="container">
+      <div class="sec-head reveal" x-intersect.once="$el.classList.add('shown')">
+        <p class="eyebrow">CAPABILITIES</p>
+        <h2>A vault with a man page.</h2>
+        <p class="lede">Standard primitives, explicit errors, atomic writes — and not a single surprise hiding behind a flag.</p>
+      </div>
+
+      <div class="bento">
+        <article class="card span-3 reveal" x-intersect.once="$el.classList.add('shown')" x-spotlight>
+          <span class="card-tag">crypto</span>
+          <div class="card-icon"><svg class="ic"><use href="#i-lock"/></svg></div>
+          <h3>AES-256-GCM</h3>
+          <p>Authenticated encryption straight from <code>node:crypto</code> — no external crypto dependency, no GPG.
+             A wrong passphrase or a tampered file fails fast: <code>ENCRYPTION_FAILED</code>, with zero technical detail leaking out.</p>
+          <div class="viz viz-seal">
+            <div class="seal-row"><span class="seal-k">iv</span><code class="cipher" x-data="scramble" data-len="18" x-text="text"></code></div>
+            <div class="seal-row"><span class="seal-k">tag</span><span class="seal-ok">✓ verified</span></div>
+            <div class="seal-row"><span class="seal-k">ct</span><code class="cipher" x-data="scramble" data-len="26" x-text="text"></code></div>
+          </div>
+        </article>
+
+        <article class="card span-3 reveal d1" x-intersect.once="$el.classList.add('shown')" x-spotlight>
+          <span class="card-tag">kdf</span>
+          <div class="card-icon"><svg class="ic"><use href="#i-cpu"/></svg></div>
+          <h3>scrypt-hardened keys</h3>
+          <p>Your passphrase never becomes the key directly. scrypt derives a 32-byte AES key with a random salt
+             generated per vault — brute-forcing the ciphertext gets deliberately expensive.</p>
+          <div class="viz viz-chips">
+            <span class="pchip pchip--hi">N=16384</span><span class="pchip">r=8</span>
+            <span class="pchip">p=1</span><span class="pchip">keylen=32</span><span class="pchip">salt=per-vault</span>
+          </div>
+        </article>
+
+        <article class="card span-2 reveal" x-intersect.once="$el.classList.add('shown')" x-spotlight>
+          <span class="card-tag">env</span>
+          <div class="card-icon"><svg class="ic"><use href="#i-zap"/></svg></div>
+          <h3>keyr run</h3>
+          <p>Spawn any command with your secrets injected into its environment — plaintext exists only in the child process's memory, never back on disk.</p>
+          <div class="viz viz-run"><span class="p">$</span><span>keyr run -- &lt;command&gt;</span></div>
+        </article>
+
+        <article class="card span-2 reveal d1" x-intersect.once="$el.classList.add('shown')" x-spotlight>
+          <span class="card-tag">tui</span>
+          <div class="card-icon"><svg class="ic"><use href="#i-monitor"/></svg></div>
+          <h3>Interactive TUI</h3>
+          <p>Run <code>keyr</code> bare for a menu-driven session. It requires a real TTY — non-interactive pipes are politely rejected.</p>
+          <div class="viz viz-tui" x-data="tuiMenu">
+            <template x-for="(item, i) in items" :key="item">
+              <div class="tui-item" :class="{ 'on': i === idx }">
+                <span class="tui-caret">▸</span><span x-text="item"></span>
+              </div>
+            </template>
+          </div>
+        </article>
+
+        <article class="card span-2 reveal d2" x-intersect.once="$el.classList.add('shown')" x-spotlight>
+          <span class="card-tag">net=0</span>
+          <div class="card-icon"><svg class="ic"><use href="#i-wifi-off"/></svg></div>
+          <h3>Zero network</h3>
+          <p>There is no network code in Keyr at all. No telemetry, no sync, no account — nothing to opt out of, nothing to leak.</p>
+          <div class="viz viz-net">
+            <div class="net-row"><span>telemetry</span><b>none</b></div>
+            <div class="net-row"><span>sync</span><b>none</b></div>
+            <div class="net-row"><span>accounts</span><b>none</b></div>
+            <div class="net-big">0 network calls — ever</div>
+          </div>
+        </article>
+
+        <article class="card span-2 reveal" x-intersect.once="$el.classList.add('shown')" x-spotlight>
+          <span class="card-tag">storage</span>
+          <div class="card-icon"><svg class="ic"><use href="#i-file"/></svg></div>
+          <h3>One file, locked down</h3>
+          <p>The whole vault is <code>~/.keyr/vault.json</code> — written atomically, <code>chmod 0o600</code> best-effort,
+             user-scoped ACLs on Windows. Repoint it with <code>KEYR_HOME</code> for sandboxes and tests.</p>
+          <div class="viz viz-file">
+            <div class="file-tab"><svg class="ic"><use href="#i-file"/></svg>vault.json</div>
+            <div class="file-body">{ "version":1, "kdf":"scrypt", … }</div>
+            <div class="file-badges"><span class="pchip">0o600</span><span class="pchip">atomic write</span></div>
+          </div>
+        </article>
+
+        <article class="card span-2 reveal d1" x-intersect.once="$el.classList.add('shown')" x-spotlight>
+          <span class="card-tag">random</span>
+          <div class="card-icon"><svg class="ic"><use href="#i-rotate"/></svg></div>
+          <h3>Fresh IV, every write</h3>
+          <p>A new IV is generated on each save — two writes of the same plaintext never produce the same ciphertext.</p>
+          <div class="viz viz-iv">
+            <div class="iv-row"><span>write 1</span><code>9f4ce2a1b7d05538</code></div>
+            <div class="iv-row"><span>write 2</span><code class="cipher" x-data="scramble" data-set="hex" data-len="16" x-text="text"></code></div>
+            <div class="iv-note">same plaintext · same salt · new IV</div>
+          </div>
+        </article>
+
+        <article class="card span-2 reveal d2" x-intersect.once="$el.classList.add('shown')" x-spotlight>
+          <span class="card-tag">src</span>
+          <div class="card-icon"><svg class="ic"><use href="#i-code"/></svg></div>
+          <h3>Small, readable source</h3>
+          <p>A codebase you can audit over coffee — Commander, Ink, ora, esbuild. Nothing exotic.</p>
+          <div class="viz viz-tree"><span class="ok">src/</span>
+├─ index.js        entry · spinner · errors
+├─ lib/crypto.js   <span class="ok">aes-256-gcm + scrypt</span>
+├─ lib/store.js    vault io · KEYR_HOME
+├─ commands/run.js spawn + env injection
+└─ <span class="ok">ui/</span>             ink tui</div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== HOW IT WORKS (lifecycle) ===== -->
+  <section class="sec" id="how" x-data="{}">
+    <div class="container">
+      <div class="sec-head reveal" x-intersect.once="$el.classList.add('shown')">
+        <p class="eyebrow">LIFECYCLE</p>
+        <h2>From passphrase to sealed file.</h2>
+        <p class="lede">One passphrase becomes one AES-256 key — and your secrets become one authenticated file.
+           The salt persists; the IV never repeats.</p>
+      </div>
+
+      <div class="flow reveal" x-intersect.once="$el.classList.add('shown')">
+        <div class="flow-node" x-spotlight>
+          <svg class="ic"><use href="#i-key"/></svg>
+          <span class="flow-name">passphrase</span>
+          <span class="flow-sub">masked prompt · never a CLI arg</span>
+        </div>
+        <div class="flow-link" aria-hidden="true"></div>
+        <div class="flow-node" x-spotlight>
+          <svg class="ic"><use href="#i-cpu"/></svg>
+          <span class="flow-name">scrypt + salt</span>
+          <span class="flow-sub">→ 32-byte AES key</span>
+        </div>
+        <div class="flow-link" aria-hidden="true"></div>
+        <div class="flow-node" x-spotlight>
+          <svg class="ic"><use href="#i-lock"/></svg>
+          <span class="flow-name">AES-256-GCM</span>
+          <span class="flow-sub">fresh IV · authTag</span>
+        </div>
+        <div class="flow-link" aria-hidden="true"></div>
+        <div class="flow-node" x-spotlight>
+          <svg class="ic"><use href="#i-file"/></svg>
+          <span class="flow-name">vault.json</span>
+          <span class="flow-sub">atomic write · 0o600</span>
+        </div>
+      </div>
+
+      <div class="panels reveal" x-intersect.once="$el.classList.add('shown')">
+        <div class="panel">
+          <div class="panel-head"><span class="dots"><i></i><i></i><i></i></span><span class="panel-title">vault.json — sealed on disk</span></div>
+          <pre class="panel-body"><code>{
+  <span class="tok-k">"version"</span>:    <span class="tok-n">1</span>,            <span class="tok-c">// vault format</span>
+  <span class="tok-k">"kdf"</span>:        <span class="tok-s">"scrypt"</span>,     <span class="tok-c">// N=16384 · r=8 · p=1</span>
+  <span class="tok-k">"salt"</span>:       <span class="tok-s">"qK1e…"</span>,      <span class="tok-c">// random · per vault</span>
+  <span class="tok-k">"iv"</span>:         <span class="tok-s">"8Mwz…"</span>,      <span class="tok-c">// fresh on every write</span>
+  <span class="tok-k">"authTag"</span>:    <span class="tok-s">"tX9p…"</span>,      <span class="tok-c">// GCM integrity</span>
+  <span class="tok-k">"ciphertext"</span>: <span class="tok-s">"kJ8s…"</span>       <span class="tok-c">// your secrets, sealed</span>
+}</code></pre>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><span class="dots"><i></i><i></i><i></i></span><span class="panel-title">payload — in memory only</span></div>
+          <pre class="panel-body"><code>{
+  <span class="tok-k">"secrets"</span>: {
+    <span class="tok-k">"OPENAI_API_KEY"</span>:    <span class="tok-s">"sk-…"</span>,
+    <span class="tok-k">"GEMINI_API_KEY"</span>:    <span class="tok-s">"…"</span>,
+    <span class="tok-k">"ANTHROPIC_API_KEY"</span>: <span class="tok-s">"sk-ant-…"</span>
+  }
+} <span class="tok-c">// plaintext exists only while a command runs</span></code></pre>
+        </div>
+      </div>
+
+      <p class="flow-note reveal" x-intersect.once="$el.classList.add('shown')">
+        Flip one byte of ciphertext and the auth tag fails the whole decryption — tampering is a hard stop, not a warning.
+      </p>
+    </div>
+  </section>
+
+  <!-- ===== KEYR RUN ===== -->
+  <section class="sec" id="run" x-data="{}">
+    <div class="container">
+      <div class="sec-head reveal" x-intersect.once="$el.classList.add('shown')">
+        <p class="eyebrow">ENV INJECTION</p>
+        <h2>One vault, every tool.</h2>
+        <p class="lede"><span class="mono">keyr run</span> spawns your command with secrets injected straight into its
+           environment — plaintext lives only in the child process's memory.</p>
+      </div>
+
+      <div class="run-grid">
+        <ol class="steps">
+          <li class="step reveal" x-intersect.once="$el.classList.add('shown')">
+            <span class="step-n">01</span>
+            <div>
+              <h3>Decrypt</h3>
+              <p>The passphrase arrives via a masked prompt, or <code>KEYR_PASSPHRASE</code> for scripts — never as a CLI argument, so it stays out of shell history and logs.</p>
+            </div>
+          </li>
+          <li class="step reveal d1" x-intersect.once="$el.classList.add('shown')">
+            <span class="step-n">02</span>
+            <div>
+              <h3>Spawn &amp; inject</h3>
+              <p><code>stdio: 'inherit'</code> keeps TUIs, colors and Ctrl-C intact; <code>shell: true</code> resolves .cmd shims on Windows; env merges your secrets in by name.</p>
+            </div>
+          </li>
+          <li class="step reveal d2" x-intersect.once="$el.classList.add('shown')">
+            <span class="step-n">03</span>
+            <div>
+              <h3>Exit honestly</h3>
+              <p>The child's exit code propagates — so <code>$?</code> and <code>$LASTEXITCODE</code> stay meaningful inside your scripts.</p>
+            </div>
+          </li>
+        </ol>
+
+        <div class="panel reveal d1" x-intersect.once="$el.classList.add('shown')">
+          <div class="panel-head"><span class="dots"><i></i><i></i><i></i></span><span class="panel-title">commands/run.js</span></div>
+          <pre class="panel-body"><code>spawn(command, {
+  <span class="tok-k">stdio</span>: <span class="tok-s">'inherit'</span>,   <span class="tok-c">// TUI · colors · Ctrl-C — untouched</span>
+  <span class="tok-k">shell</span>:  <span class="tok-s">true</span>,         <span class="tok-c">// resolves .cmd shims on Windows</span>
+  <span class="tok-k">env</span>:    { ...process.env, <span class="tok-k">...secrets</span> }  <span class="tok-c">// name → env var</span>
+})</code></pre>
+          <div class="panel-foot">// the child's exit code is inherited — scripts stay honest</div>
+        </div>
+      </div>
+
+      <div class="tools reveal" x-intersect.once="$el.classList.add('shown')">
+        <p class="tools-label">IF IT READS CREDENTIALS FROM ENV, ONE VAULT CAN FEED IT</p>
+        <div class="tool-chips">
+          <span class="tool-chip"><b></b>OpenCode</span>
+          <span class="tool-chip"><b></b>Claude Code</span>
+          <span class="tool-chip"><b></b>Codex</span>
+          <span class="tool-chip"><b></b>Gemini CLI</span>
+          <span class="tool-chip"><b></b>Aider</span>
+          <span class="tool-chip"><b></b>Goose</span>
+        </div>
+      </div>
+
+      <div class="run-strip reveal" x-intersect.once="$el.classList.add('shown')">
+        <code class="run-cfg">"apiKey": "{env:HIVE_API_KEY}"</code>
+        <p>Tools reference the <em>name</em>, never the value — substitution happens in memory when the process starts. The vault never writes plaintext back to disk.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== COMMANDS ===== -->
+  <section class="sec" id="commands" x-data="{}">
+    <div class="container">
+      <div class="sec-head reveal" x-intersect.once="$el.classList.add('shown')">
+        <p class="eyebrow">THE VERBS</p>
+        <h2>Speak fluent shell.</h2>
+        <p class="lede">Nine verbs with explicit error codes — <span class="mono">VAULT_EXISTS</span>,
+           <span class="mono">SECRET_NOT_FOUND</span>, <span class="mono">ENCRYPTION_FAILED</span> — and nothing hidden behind flags you'll never find. Click any command to copy it.</p>
+      </div>
+
+      <ul class="cmds">
+        <li class="cmd-row reveal" x-intersect.once="$el.classList.add('shown')">
+          <button class="cmd-btn" x-data="{c:false}" @click="$copy('keyr init'); c = true; setTimeout(() => c = false, 1300)">
+            <span class="p">$</span><span>keyr init</span>
+            <span class="cmd-copy"><svg class="ic" x-show="!c"><use href="#i-copy"/></svg><svg class="ic ok" x-show="c" x-cloak><use href="#i-check"/></svg></span>
+          </button>
+          <p class="cmd-desc">Create a fresh vault. Refuses to clobber an existing one — <code>VAULT_EXISTS</code>.</p>
+        </li>
+        <li class="cmd-row reveal" x-intersect.once="$el.classList.add('shown')">
+          <button class="cmd-btn" x-data="{c:false}" @click="$copy('keyr set NAME [value]'); c = true; setTimeout(() => c = false, 1300)">
+            <span class="p">$</span><span>keyr set NAME [value]</span>
+            <span class="cmd-copy"><svg class="ic" x-show="!c"><use href="#i-copy"/></svg><svg class="ic ok" x-show="c" x-cloak><use href="#i-check"/></svg></span>
+          </button>
+          <p class="cmd-desc">Add or update a secret. Decrypt → mutate → re-encrypt with a fresh IV → atomic write.</p>
+        </li>
+        <li class="cmd-row reveal" x-intersect.once="$el.classList.add('shown')">
+          <button class="cmd-btn" x-data="{c:false}" @click="$copy('keyr get NAME'); c = true; setTimeout(() => c = false, 1300)">
+            <span class="p">$</span><span>keyr get NAME</span>
+            <span class="cmd-copy"><svg class="ic" x-show="!c"><use href="#i-copy"/></svg><svg class="ic ok" x-show="c" x-cloak><use href="#i-check"/></svg></span>
+          </button>
+          <p class="cmd-desc">Print one secret. Misses are explicit: <code>SECRET_NOT_FOUND</code> / <code>VAULT_NOT_FOUND</code>.</p>
+        </li>
+        <li class="cmd-row reveal" x-intersect.once="$el.classList.add('shown')">
+          <button class="cmd-btn" x-data="{c:false}" @click="$copy('keyr list'); c = true; setTimeout(() => c = false, 1300)">
+            <span class="p">$</span><span>keyr list</span>
+            <span class="cmd-copy"><svg class="ic" x-show="!c"><use href="#i-copy"/></svg><svg class="ic ok" x-show="c" x-cloak><use href="#i-check"/></svg></span>
+          </button>
+          <p class="cmd-desc">Every secret name in the vault — the values stay sealed.</p>
+        </li>
+        <li class="cmd-row reveal" x-intersect.once="$el.classList.add('shown')">
+          <button class="cmd-btn" x-data="{c:false}" @click="$copy('keyr delete NAME --yes'); c = true; setTimeout(() => c = false, 1300)">
+            <span class="p">$</span><span>keyr delete NAME [--yes]</span>
+            <span class="cmd-copy"><svg class="ic" x-show="!c"><use href="#i-copy"/></svg><svg class="ic ok" x-show="c" x-cloak><use href="#i-check"/></svg></span>
+          </button>
+          <p class="cmd-desc">Remove a secret. Asks <code>y/N</code> unless <code>--yes</code> is passed for scripts.</p>
+        </li>
+        <li class="cmd-row reveal" x-intersect.once="$el.classList.add('shown')">
+          <button class="cmd-btn" x-data="{c:false}" @click="$copy('keyr export'); c = true; setTimeout(() => c = false, 1300)">
+            <span class="p">$</span><span>keyr export</span>
+            <span class="cmd-copy"><svg class="ic" x-show="!c"><use href="#i-copy"/></svg><svg class="ic ok" x-show="c" x-cloak><use href="#i-check"/></svg></span>
+          </button>
+          <p class="cmd-desc">Take your secrets with you.</p>
+        </li>
+        <li class="cmd-row reveal" x-intersect.once="$el.classList.add('shown')">
+          <button class="cmd-btn" x-data="{c:false}" @click="$copy('keyr reset'); c = true; setTimeout(() => c = false, 1300)">
+            <span class="p">$</span><span>keyr reset</span>
+            <span class="cmd-copy"><svg class="ic" x-show="!c"><use href="#i-copy"/></svg><svg class="ic ok" x-show="c" x-cloak><use href="#i-check"/></svg></span>
+          </button>
+          <p class="cmd-desc">Deletes the vault permanently. There is no recovery — by design.</p>
+        </li>
+        <li class="cmd-row reveal" x-intersect.once="$el.classList.add('shown')">
+          <button class="cmd-btn" x-data="{c:false}" @click="$copy('keyr run -- <command>'); c = true; setTimeout(() => c = false, 1300)">
+            <span class="p">$</span><span>keyr run &lt;command…&gt;</span>
+            <span class="cmd-copy"><svg class="ic" x-show="!c"><use href="#i-copy"/></svg><svg class="ic ok" x-show="c" x-cloak><use href="#i-check"/></svg></span>
+          </button>
+          <p class="cmd-desc">Spawn a command with secrets injected into its environment; the child's exit code is inherited.</p>
+        </li>
+        <li class="cmd-row reveal" x-intersect.once="$el.classList.add('shown')">
+          <button class="cmd-btn" x-data="{c:false}" @click="$copy('keyr'); c = true; setTimeout(() => c = false, 1300)">
+            <span class="p">$</span><span>keyr</span>
+            <span class="cmd-copy"><svg class="ic" x-show="!c"><use href="#i-copy"/></svg><svg class="ic ok" x-show="c" x-cloak><use href="#i-check"/></svg></span>
+          </button>
+          <p class="cmd-desc">Bare invocation opens the interactive TUI menu. Requires a real TTY — pipes are politely rejected.</p>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ===== HONEST LIMITS ===== -->
+  <section class="sec limits" id="limits" x-data="{}">
+    <div class="container">
+      <div class="sec-head reveal" x-intersect.once="$el.classList.add('shown')">
+        <p class="eyebrow">HONEST LIMITS</p>
+        <h2>The fine print, in bold.</h2>
+        <p class="lede">Keyr is explicit about what it isn't. No overclaims — that's the whole point.</p>
+      </div>
+
+      <div class="limits-grid">
+        <article class="card card--warn reveal" x-intersect.once="$el.classList.add('shown')" x-spotlight>
+          <div class="card-icon"><svg class="ic"><use href="#i-alert"/></svg></div>
+          <h3>Not a kernel boundary</h3>
+          <p>Malware running as your user can still read the child's environment and keystrokes. Keyr moves secrets from permanent storage to session memory — it narrows the window of exposure, it doesn't build a wall.</p>
+        </article>
+        <article class="card card--warn reveal d1" x-intersect.once="$el.classList.add('shown')" x-spotlight>
+          <div class="card-icon"><svg class="ic"><use href="#i-key-off"/></svg></div>
+          <h3>The vault is as strong as the passphrase</h3>
+          <p>scrypt makes brute-force expensive, but a short passphrase is still the weak link. Choose long.</p>
+        </article>
+        <article class="card card--warn reveal d1" x-intersect.once="$el.classList.add('shown')" x-spotlight>
+          <div class="card-icon"><svg class="ic"><use href="#i-eye-off"/></svg></div>
+          <h3>Forgetting is fatal</h3>
+          <p>The passphrase is never stored anywhere — not on disk, not in a log. Lose it and the data is gone. There is no recovery, by design.</p>
+        </article>
+        <article class="card card--warn reveal d2" x-intersect.once="$el.classList.add('shown')" x-spotlight>
+          <div class="card-icon"><svg class="ic"><use href="#i-shield-q"/></svg></div>
+          <h3>Not yet audited</h3>
+          <p>The primitives are standard and correctly used — but Keyr has not been through an independent security audit. Honest today; better later.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== FINAL CTA ===== -->
+  <section class="sec cta" id="install" x-data="{}">
+    <div class="container cta-inner">
+      <div class="reveal" x-intersect.once="$el.classList.add('shown')">
+        <h2>Keep your keys where your code lives.</h2>
+        <p class="cta-sub">One file. One passphrase. Every tool.</p>
+      </div>
+
+      <div class="install reveal d1" x-data="{c:false}">
+        <span class="p">$</span><span>npm install -g @rillwz/keyr</span>
+        <button @click="$copy('npm install -g @rillwz/keyr'); c = true; setTimeout(() => c = false, 1600)" aria-label="Copy install command">
+          <svg class="ic" x-show="!c"><use href="#i-copy"/></svg>
+          <svg class="ic ok" x-show="c" x-cloak><use href="#i-check"/></svg>
+        </button>
+      </div>
+
+      <div class="reveal d2" x-intersect.once="$el.classList.add('shown')">
+        <a class="btn-beam" href="https://github.com/Rillwz/keyr" target="_blank" rel="noopener">
+          <svg class="beam-svg" aria-hidden="true"><rect x="1.5" y="1.5" rx="12" pathLength="100"/></svg>
+          <svg class="ic ic--fill"><use href="#i-github"/></svg>
+          <span>Star keyr on GitHub</span>
+          <svg class="ic"><use href="#i-arrow-ur"/></svg>
+        </a>
+      </div>
+
+      <p class="cta-note reveal d3" x-intersect.once="$el.classList.add('shown')">
+        Node ≥ 18 · Windows / macOS / Linux — and yes, this page is a single static file.
+      </p>
+    </div>
+  </section>
+
+</main>
+
+<!-- ===== FOOTER ===== -->
+<footer class="footer" x-data="{}">
+  <div class="container">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <a class="brand" href="#top">
+          <span class="brand-mark"><svg class="ic"><use href="#i-key"/></svg></span>
+          <span class="brand-name">keyr</span>
+        </a>
+        <p>A local-first secret manager for people who read the fine print.</p>
+      </div>
+      <div class="foot-col">
+        <p class="foot-label">ELSEWHERE</p>
+        <a href="https://zenhance.pages.dev" target="_blank" rel="noopener">zenhance <svg class="ic"><use href="#i-arrow-ur"/></svg></a>
+        <a href="https://2constant.pages.dev" target="_blank" rel="noopener">2constant <svg class="ic"><use href="#i-arrow-ur"/></svg></a>
+        <a href="https://nonlinear.pages.dev" target="_blank" rel="noopener">nonlinear <svg class="ic"><use href="#i-arrow-ur"/></svg></a>
+      </div>
+      <div class="foot-col">
+        <p class="foot-label">KEYR</p>
+        <a href="https://github.com/Rillwz/keyr" target="_blank" rel="noopener">GitHub repo <svg class="ic"><use href="#i-arrow-ur"/></svg></a>
+        <a href="#features">Features</a>
+        <a href="#commands">Commands</a>
+        <a href="#limits">Honest limits</a>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© <span x-text="new Date().getFullYear()">2025</span> rillwz — keyr</span>
+      <span>one HTML file · Alpine.js · no cookies, no tracking</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

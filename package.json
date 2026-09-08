@@ -1,5 +1,5 @@
 {
-  "name": "keyr",
+  "name": "@rillwz/keyr",
   "version": "0.0.1",
   "description": "A local-first secret manager for API keys and secrets, encrypted into a single vault using AES-256-GCM + scrypt.",
   "type": "module",
