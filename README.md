@@ -8,20 +8,6 @@ Personal secret manager CLI — a free, self-hosted alternative to Bitwarden CLI
 - Cross-platform: Windows / macOS / Linux
 - Two modes: interactive menu (Ink) and direct commands for scripting (Commander)
 
-## How is Keyr different?
-
-Similar tools exist — Keyr's niche is the combination, not any single feature:
-
-| Tool | Why not "just use it" |
-|---|---|
-| **pass** / **gopass** | battle-tested, but requires **GPG** (painful on Windows), scatters one file per secret across a tree, no command wrapping |
-| **Bitwarden CLI** | solid, but needs a server (cloud or self-hosted) and an account |
-| **1Password CLI** | great `run`-style env injection — but paid, cloud, account |
-| **Infisical / Doppler** | built for teams; overkill for personal secrets |
-| **age / sops** | encrypt files, but aren't managers (no list/set/get/TUI) |
-
-Keyr = **Node-native (no GPG) + single-file vault + `keyr run` env injection + friendly TUI + zero accounts/servers** — free and local-only. If you already live happily with pass or bw, keep them; Keyr is for people who want that workflow without the dependencies.
-
 ## Install
 
 Requires Node.js ≥ 18.
