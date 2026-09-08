@@ -1,12 +1,18 @@
 {
   "name": "keyr",
   "version": "1.0.0",
-  "description": "Keyr - personal secret manager CLI, self-hosted, terenkripsi di komputer Anda sendiri",
+  "description": "A local-first secret manager for API keys and secrets, encrypted into a single vault using AES-256-GCM + scrypt.",
   "type": "module",
   "main": "src/index.js",
   "bin": {
     "keyr": "src/index.js"
   },
+  "files": [
+    "src",
+    "scripts",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "test": "node --test \"test/*.test.js\"",
     "build": "node scripts/build-ui.js",
